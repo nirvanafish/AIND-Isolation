@@ -38,7 +38,17 @@ def custom_score(game, player):
     """
 
     # TODO: finish this function!
-    raise NotImplementedError
+
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+
+    if own_moves > 0 and opp_moves == 0:
+        return float("inf")
+    if own_moves == 0 and opp_moves > 0:
+        return -float("inf")
+    if own_moves == 0 and  opp_moves == 0:
+        return -50
+    return float(own_moves/opp_moves)
 
 
 class CustomPlayer:
@@ -123,20 +133,39 @@ class CustomPlayer:
         # Perform any required initializations, including selecting an initial
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
+        
+        if not legal_moves:
+            return (-1, -1)
+        
+        method = getattr(self, self.method)
+        move = (-1, -1)
 
         try:
             # The search method call (alpha beta or minimax) should happen in
             # here in order to avoid timeout. The try/except block will
             # automatically catch the exception raised by the search method
             # when the timer gets close to expiring
-            pass
+            if self.iterative:
+                depth = 1
+                while 1:
+                    if self.search_depth > 0:
+                        if depth > self.search_depth:
+                            break
+                    score, move = method(game, depth)
+                    #print(score, move)
+                    depth = depth + 1
+            else:
+                score, move = method(game, self.search_depth) 
+                #print(score, move)
 
         except Timeout:
             # Handle any actions required at timeout, if necessary
             pass
+            # return move
 
         # Return the best move from the last completed search iteration
-        raise NotImplementedError
+        # raise NotImplementedError
+        return move
 
     def minimax(self, game, depth, maximizing_player=True):
         """Implement the minimax search algorithm as described in the lectures.
@@ -171,9 +200,32 @@ class CustomPlayer:
         """
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
+        
+        legal_moves = game.get_legal_moves()
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        if depth == 0 or len(legal_moves) == 0:
+            last_move = game.get_player_location(self)
+            last_score = self.score(game, self)
+            return last_score, last_move
+
+        best_move = legal_moves[0]
+        best_score = -float('inf') if maximizing_player else float('inf')
+        
+        for a in legal_moves:
+            new_game = game.forecast_move(a)
+            v, _ = self.minimax(new_game, depth-1, not maximizing_player)
+
+            #print(best_score, best_move)
+            if maximizing_player:
+                if v > best_score:
+                    best_score = v
+                    best_move = a
+            else:
+                if v < best_score:
+                    best_score = v
+                    best_move = a
+
+        return best_score, best_move
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
         """Implement minimax search with alpha-beta pruning as described in the
@@ -217,4 +269,35 @@ class CustomPlayer:
             raise Timeout()
 
         # TODO: finish this function!
-        raise NotImplementedError
+        #raise NotImplementedError
+        
+        legal_moves = game.get_legal_moves()
+
+        if  depth == 0  or  len(legal_moves) == 0 :
+            last_move = game.get_player_location(self)
+            last_score = self.score(game, self)
+            return last_score, last_move
+
+ 
+        best_score = -float('inf') if maximizing_player else float('inf')
+        best_action = legal_moves[0]
+
+        for a in legal_moves:
+            new_game = game.forecast_move(a)
+            v, _ = self.alphabeta(new_game, depth-1, alpha, beta, not maximizing_player)
+
+            if maximizing_player:    
+                if v > best_score:
+                    best_score = v
+                    best_action = a
+                alpha = max(alpha, v)
+            else:
+                if v < best_score:
+                    best_score = v
+                    best_action = a
+                beta = min(beta, v)
+
+            if beta <= alpha:
+                break
+ 
+        return best_score, best_action
