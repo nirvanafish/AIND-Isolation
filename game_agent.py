@@ -7,7 +7,7 @@ You must test your agent's strength against a set of agents with known
 relative strength using tournament.py and include the results in your report.
 """
 import random
-
+import math
 
 class Timeout(Exception):
     """Subclass base exception for code clarity."""
@@ -39,6 +39,12 @@ def custom_score(game, player):
 
     # TODO: finish this function!
 
+    return distance_metrics(game, player)
+    #return center_metrics(game, player)
+    #return proportional_metrics(game, player)
+ 
+def proportional_metrics(game, player):
+    
     own_moves = len(game.get_legal_moves(player))
     opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
 
@@ -46,10 +52,50 @@ def custom_score(game, player):
         return float("inf")
     if own_moves == 0 and opp_moves > 0:
         return -float("inf")
-    if own_moves == 0 and  opp_moves == 0:
-        return -50
-    return float(own_moves/opp_moves)
+    if own_moves ==0 and opp_moves ==0:
+        return -float("inf")
+    return float(own_moves/opp_moves) 
 
+def center_metrics(game, player):
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+
+    if own_moves > 0 and opp_moves == 0:
+        return float("inf")
+    if own_moves == 0:
+        return -float("inf")
+    own_row, own_col = game.get_player_location(player)
+    own_dist_from_center = dist_from_center(game, own_row, own_col)
+
+    #if own_dist_from_center == 0:
+    #    return float(own_moves-opp_moves)
+    #else:
+    return float(own_moves-opp_moves)+ 1./(own_dist_from_center+0.5)
+
+def dist_from_center(game, row, col):
+    center_row = game.width//2
+    center_col = game.height//2
+    return math.sqrt(math.pow(row-center_row,2) + math.pow(col-center_col,2))
+
+def distance_metrics(game, player):
+    
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+
+    own_row, own_col = game.get_player_location(player)
+    opp_row, opp_col = game.get_player_location(game.get_opponent(player))
+
+    own_dist_from_center = dist_from_center(game, own_row, own_col)+0.5
+    opp_dist_from_center = dist_from_center(game, opp_row, opp_col)+0.5
+ 
+    if own_moves > 0 and opp_moves == 0:
+        return float("inf")
+    if own_moves == 0 :
+        return -float("inf")
+    
+    #return float(own_moves-opp_moves)+opp_dist_from_center/own_dist_from_center
+    return float(own_moves-opp_moves)-own_dist_from_center+opp_dist_from_center
+    #return float(own_moves)*own_dist_from_center - float(opp_moves)*opp_dist_from_center
 
 class CustomPlayer:
     """Game-playing agent that chooses a move using your evaluation function
@@ -148,9 +194,9 @@ class CustomPlayer:
             if self.iterative:
                 depth = 1
                 while 1:
-                    if self.search_depth > 0:
-                        if depth > self.search_depth:
-                            break
+    #                if self.search_depth > 0:
+    #                    if depth > self.search_depth:
+    #                        break
                     score, move = method(game, depth)
                     #print(score, move)
                     depth = depth + 1
